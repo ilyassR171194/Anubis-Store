@@ -5,6 +5,11 @@ import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/f
 
 const productsContainer = document.getElementById('productsContainer');
 
+// جعل الدالة متاحة عالمياً ليتم استدعاؤها من onclick
+window.addToCartGlobal = (id, name, price, image) => {
+    addToCart(id, name, price, image);
+};
+
 export const loadProducts = async () => {
     if (!productsContainer) return;
 
@@ -24,7 +29,7 @@ export const loadProducts = async () => {
                     <img src="${product.image || 'https://via.placeholder.com/150'}" alt="${product.name}">
                     <h4>${product.name}</h4>
                     <p>${product.price} $</p>
-                    <button onclick="addToCart('${doc.id}', '${product.name}', ${product.price}, '${product.image}')">أضف إلى السلة</button>
+                    <button onclick="window.addToCartGlobal('${doc.id}', '${product.name}', ${product.price}, '${product.image}')">أضف إلى السلة</button>
                 </div>
             `;
             productsContainer.innerHTML += productHTML;
