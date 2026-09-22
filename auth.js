@@ -1,27 +1,29 @@
 // auth.js
 import { auth } from './firebase.js';
-import { GoogleAuthProvider, GithubAuthProvider, signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const googleProvider = new GoogleAuthProvider();
 const githubProvider = new GithubAuthProvider();
 
-// دالة تسجيل الدخول باستخدام Google (بطريقة إعادة التوجيه)
+// دالة تسجيل الدخول باستخدام Google (النافذة المنبثقة)
 export const loginWithGoogle = async () => {
     try {
-        await signInWithRedirect(auth, googleProvider);
+        await signInWithPopup(auth, googleProvider);
+        window.location.href = 'index.html';
     } catch (error) {
         console.error("خطأ في تسجيل الدخول بـ Google:", error);
-        alert("فشل تسجيل الدخول. حاول مرة أخرى.");
+        alert("فشل تسجيل الدخول. تأكد من أن النطاق مسموح به في Firebase.");
     }
 };
 
-// دالة تسجيل الدخول باستخدام GitHub (بطريقة إعادة التوجيه)
+// دالة تسجيل الدخول باستخدام GitHub
 export const loginWithGithub = async () => {
     try {
-        await signInWithRedirect(auth, githubProvider);
+        await signInWithPopup(auth, githubProvider);
+        window.location.href = 'index.html';
     } catch (error) {
         console.error("خطأ في تسجيل الدخول بـ GitHub:", error);
-        alert("فشل تسجيل الدخول بـ GitHub.");
+        alert("فشل تسجيل الدخول بـ GitHub. تأكد من إعدادات OAuth.");
     }
 };
 
@@ -34,18 +36,6 @@ export const logout = async () => {
         console.error("خطأ في تسجيل الخروج:", error);
     }
 };
-
-// معالجة نتيجة إعادة التوجيه بعد عودة المستخدم من Google
-getRedirectResult(auth)
-    .then((result) => {
-        if (result) {
-            console.log("تم تسجيل الدخول بنجاح:", result.user);
-            window.location.href = 'index.html';
-        }
-    })
-    .catch((error) => {
-        console.error("خطأ في إعادة التوجيه:", error);
-    });
 
 // مراقبة حالة المستخدم
 onAuthStateChanged(auth, (user) => {
