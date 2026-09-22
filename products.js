@@ -1,5 +1,6 @@
 // products.js
 import { db } from './firebase.js';
+import { addToCart } from './cart.js';
 import { collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const productsContainer = document.getElementById('productsContainer');
@@ -23,7 +24,7 @@ export const loadProducts = async () => {
                     <img src="${product.image || 'https://via.placeholder.com/150'}" alt="${product.name}">
                     <h4>${product.name}</h4>
                     <p>${product.price} $</p>
-                    <button>أضف إلى السلة</button>
+                    <button onclick="addToCart('${doc.id}', '${product.name}', ${product.price}, '${product.image}')">أضف إلى السلة</button>
                 </div>
             `;
             productsContainer.innerHTML += productHTML;
