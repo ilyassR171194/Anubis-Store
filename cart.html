@@ -57,7 +57,7 @@
                         <img src="${item.image}" alt="${item.name}">
                         <h4>${item.name}</h4>
                         <p>${item.price} $ × ${item.quantity}</p>
-                        <button onclick="removeItem('${item.id}')" style="background-color: #e74c3c;">إزالة</button>
+                        <button onclick="window.removeItem('${item.id}')" style="background-color: #e74c3c;">إزالة</button>
                     </div>
                 `;
                 cartContainer.innerHTML += itemHTML;
