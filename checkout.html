@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إتمام الطلب | متجر أنوبيس</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .checkout-container { max-width: 600px; margin: 3rem auto; padding: 2rem; background-color: #1a1a1a; border-radius: 12px; border: 1px solid #333; }
+        .checkout-container h2 { color: #f39c12; text-align: center; margin-bottom: 2rem; }
+        .checkout-item { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #333; }
+        .checkout-total { text-align: left; font-size: 1.3rem; font-weight: 700; color: #f39c12; margin-top: 1rem; }
+        .form-group { margin-bottom: 1.5rem; text-align: right; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #444; background-color: #222; color: #fff; font-family: 'Cairo', sans-serif; }
+        .paypal-info { background-color: #003087; color: #fff; padding: 1rem; border-radius: 8px; margin: 1rem 0; text-align: center; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"><h1>🐺 متجر أنوبيس</h1></div>
+        <nav>
+            <a href="index.html">الرئيسية</a>
+            <a href="cart.html">السلة 🛒</a>
+        </nav>
+    </header>
+
+    <main>
+        <div class="checkout-container">
+            <h2>إتمام الطلب</h2>
+            
+            <h3>ملخص الطلب:</h3>
+            <div id="orderSummary"></div>
+            <div id="orderTotal" class="checkout-total"></div>
+
+            <hr style="border-color: #333; margin: 2rem 0;">
+
+            <h3>بيانات الدفع:</h3>
+            <div class="form-group">
+                <label for="email">البريد الإلكتروني (لاستلام المنتج):</label>
+                <input type="email" id="email" placeholder="example@email.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="paymentMethod">طريقة الدفع:</label>
+                <select id="paymentMethod">
+                    <option value="paypal">PayPal (يدوي)</option>
+                </select>
+            </div>
+
+            <div class="paypal-info">
+                <p><strong>الدفع عبر PayPal:</strong></p>
+                <p>يرجى إرسال المبلغ إلى بريدنا الإلكتروني:</p>
+                <p><strong>anubis-store@example.com</strong></p>
+                <p>ثم أدخل رقم عملية الدفع (Transaction ID) في الأسفل.</p>
+            </div>
+
+            <div class="form-group">
+                <label for="transactionId">رقم عملية الدفع (Transaction ID):</label>
+                <input type="text" id="transactionId" placeholder="أدخل رقم العملية هنا">
+            </div>
+
+            <button id="confirmOrderBtn" style="width: 100%; padding: 15px; font-size: 1.2rem;">تأكيد الطلب</button>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2026 Anubis Store. جميع الحقوق محفوظة.</p>
+    </footer>
+
+    <script type="module">
+        import { getCart, clearCart } from './cart.js';
+
+        const orderSummary = document.getElementById('orderSummary');
+        const orderTotal = document.getElementById('orderTotal');
+        const cart = getCart();
+
+        if (cart.length === 0) {
+            orderSummary.innerHTML = '<p>السلة فارغة. لا يمكن إتمام الطلب.</p>';
+            document.getElementById('confirmOrderBtn').disabled = true;
+        } else {
+            let total = 0;
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                orderSummary.innerHTML += `
+                    <div class="checkout-item">
+                        <span>${item.name} × ${item.quantity}</span>
+                        <span>${item.price * item.quantity} $</span>
+                    </div>
+                `;
+            });
+            orderTotal.textContent = `الإجمالي: ${total} $`;
+        }
+
+        document.getElementById('confirmOrderBtn').addEventListener('click', () => {
+            const email = document.getElementById('email').value;
+            const transactionId = document.getElementById('transactionId').value;
+
+            if (!email || !transactionId) {
+                alert('الرجاء إدخال البريد الإلكتروني ورقم عملية الدفع.');
+                return;
+            }
+
+            // هنا يمكنك إضافة كود لحفظ الطلب في Firebase
+            alert('تم استلام طلبك بنجاح! سنقوم بمراجعته وإرسال المنتج إلى بريدك الإلكتروني قريباً.');
+            
+            // تفريغ السلة بعد الطلب
+            clearCart();
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html>
