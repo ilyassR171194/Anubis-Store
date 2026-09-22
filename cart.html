@@ -20,7 +20,7 @@
         <section class="products">
             <h3>سلة التسوق</h3>
             <div id="cartContainer" class="product-grid">
-                <!-- سيتم عرض المنتجات هنا -->
+                <p style="text-align: center; width: 100%;">جاري تحميل السلة...</p>
             </div>
             <div id="cartTotal" style="text-align: center; margin-top: 2rem; font-size: 1.5rem; color: #f39c12; font-weight: 700;"></div>
             <div style="text-align: center; margin-top: 1rem;">
@@ -35,12 +35,18 @@
 
     <script type="module">
         import { getCart, removeFromCart, updateCartCount } from './cart.js';
+        import { auth } from './firebase.js';
 
         const cartContainer = document.getElementById('cartContainer');
         const cartTotal = document.getElementById('cartTotal');
 
-        function renderCart() {
-            const cart = getCart();
+        async function renderCart() {
+            if (!auth.currentUser) {
+                cartContainer.innerHTML = '<p style="text-align: center; width: 100%;">يجب تسجيل الدخول لعرض السلة.</p>';
+                return;
+            }
+
+            const cart = await getCart();
             cartContainer.innerHTML = '';
             
             if (cart.length === 0) {
@@ -65,15 +71,13 @@
             cartTotal.textContent = `الإجمالي: ${total} $`;
         }
 
-        // دالة الإزالة (يجب أن تكون عامة ليتم استدعاؤها من onclick)
-        window.removeItem = (id) => {
-            removeFromCart(id);
+        window.removeItem = async (id) => {
+            await removeFromCart(id);
             renderCart();
         };
 
-        // دالة إتمام الطلب
-        document.getElementById('checkoutBtn').addEventListener('click', () => {
-            const cart = getCart();
+        document.getElementById('checkoutBtn').addEventListener('click', async () => {
+            const cart = await getCart();
             if (cart.length === 0) {
                 alert('السلة فارغة!');
                 return;
