@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول | متجر أنوبيس</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .login-container {
+            max-width: 400px;
+            margin: 4rem auto;
+            padding: 2rem;
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            text-align: center;
+        }
+        .login-container h2 {
+            margin-bottom: 2rem;
+            color: var(--accent-color);
+        }
+        .login-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            cursor: pointer;
+            border: none;
+            font-family: 'Cairo', sans-serif;
+            transition: opacity 0.3s;
+        }
+        .google-btn { background-color: #fff; color: #333; }
+        .github-btn { background-color: #333; color: #fff; }
+        .phone-btn { background-color: var(--accent-color); color: #000; }
+        .login-btn:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo"><h1>🐺 متجر أنوبيس</h1></div>
+        <nav><a href="index.html">الرئيسية</a></nav>
+    </header>
+
+    <main>
+        <div class="login-container">
+            <h2>تسجيل الدخول</h2>
+            <button id="googleLoginBtn" class="login-btn google-btn">🔵 الدخول بواسطة Google</button>
+            <button id="githubLoginBtn" class="login-btn github-btn">⚫ الدخول بواسطة GitHub</button>
+            <button id="phoneLoginBtn" class="login-btn phone-btn">📱 الدخول برقم الهاتف</button>
+        </div>
+    </main>
+
+    <script type="module">
+        import { loginWithGoogle, loginWithGithub } from './auth.js';
+        
+        document.getElementById('googleLoginBtn').addEventListener('click', loginWithGoogle);
+        document.getElementById('githubLoginBtn').addEventListener('click', loginWithGithub);
+        
+        // Phone login سيتم تفعيله لاحقاً (يتطلب إعداداً إضافياً في Firebase)
+        document.getElementById('phoneLoginBtn').addEventListener('click', () => {
+            alert('تسجيل الدخول برقم الهاتف قيد التطوير. يرجى استخدام Google أو GitHub حالياً.');
+        });
+    </script>
+</body>
+</html>
