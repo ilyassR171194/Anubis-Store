@@ -70,15 +70,22 @@
 
     <script type="module">
         import { getCart, clearCart } from './cart.js';
+        import { auth } from './firebase.js';
 
         const orderSummary = document.getElementById('orderSummary');
         const orderTotal = document.getElementById('orderTotal');
-        const cart = getCart();
 
-        if (cart.length === 0) {
-            orderSummary.innerHTML = '<p>السلة فارغة. لا يمكن إتمام الطلب.</p>';
-            document.getElementById('confirmOrderBtn').disabled = true;
-        } else {
+        async function renderOrderSummary() {
+            if (!auth.currentUser) {
+                orderSummary.innerHTML = '<p>يجب تسجيل الدخول أولاً.</p>';
+                return;
+            }
+            const cart = await getCart();
+            if (cart.length === 0) {
+                orderSummary.innerHTML = '<p>السلة فارغة. لا يمكن إتمام الطلب.</p>';
+                document.getElementById('confirmOrderBtn').disabled = true;
+                return;
+            }
             let total = 0;
             cart.forEach(item => {
                 total += item.price * item.quantity;
@@ -92,7 +99,7 @@
             orderTotal.textContent = `الإجمالي: ${total} $`;
         }
 
-        document.getElementById('confirmOrderBtn').addEventListener('click', () => {
+        document.getElementById('confirmOrderBtn').addEventListener('click', async () => {
             const email = document.getElementById('email').value;
             const transactionId = document.getElementById('transactionId').value;
 
@@ -101,13 +108,14 @@
                 return;
             }
 
-            // هنا يمكنك إضافة كود لحفظ الطلب في Firebase
+            // هنا يمكنك إضافة كود لحفظ الطلب في Firebase (سنقوم به لاحقاً)
             alert('تم استلام طلبك بنجاح! سنقوم بمراجعته وإرسال المنتج إلى بريدك الإلكتروني قريباً.');
             
-            // تفريغ السلة بعد الطلب
-            clearCart();
+            await clearCart();
             window.location.href = 'index.html';
         });
+
+        renderOrderSummary();
     </script>
 </body>
 </html>
