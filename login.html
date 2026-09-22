@@ -8,11 +8,10 @@
     <style>
         .login-container { max-width: 400px; margin: 4rem auto; padding: 2rem; background-color: #1a1a1a; border-radius: 12px; border: 1px solid #333; text-align: center; }
         .login-container h2 { margin-bottom: 2rem; color: #f39c12; }
-        .login-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-family: 'Cairo', sans-serif; transition: opacity 0.3s; }
-        .google-btn { background-color: #fff; color: #333; }
-        .github-btn { background-color: #333; color: #fff; }
-        .phone-btn { background-color: #f39c12; color: #000; }
+        .login-input { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #444; background-color: #222; color: #fff; font-family: 'Cairo', sans-serif; }
+        .login-btn { width: 100%; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-family: 'Cairo', sans-serif; transition: opacity 0.3s; background-color: #f39c12; color: #000; margin-bottom: 1rem; }
         .login-btn:hover { opacity: 0.9; }
+        .toggle-link { color: #f39c12; cursor: pointer; text-decoration: underline; margin-top: 1rem; display: block; }
     </style>
 </head>
 <body>
@@ -23,21 +22,65 @@
 
     <main>
         <div class="login-container">
-            <h2>تسجيل الدخول</h2>
-            <button id="googleLoginBtn" class="login-btn google-btn">🔵 الدخول بواسطة Google</button>
-            <button id="githubLoginBtn" class="login-btn github-btn">⚫ الدخول بواسطة GitHub</button>
-            <button id="phoneLoginBtn" class="login-btn phone-btn">📱 الدخول برقم الهاتف</button>
+            <h2 id="formTitle">تسجيل الدخول</h2>
+            <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني">
+            <input type="password" id="password" class="login-input" placeholder="كلمة المرور">
+            <button id="submitBtn" class="login-btn">دخول</button>
+            <span id="toggleForm" class="toggle-link">ليس لديك حساب؟ سجل الآن</span>
         </div>
     </main>
 
     <script type="module">
-        import { loginWithGoogle, loginWithGithub } from './auth.js';
-        
-        document.getElementById('googleLoginBtn').addEventListener('click', loginWithGoogle);
-        document.getElementById('githubLoginBtn').addEventListener('click', loginWithGithub);
-        
-        document.getElementById('phoneLoginBtn').addEventListener('click', () => {
-            alert('تسجيل الدخول برقم الهاتف قيد التطوير.');
+        import { auth } from './firebase.js';
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+        let isLoginMode = true;
+        const formTitle = document.getElementById('formTitle');
+        const submitBtn = document.getElementById('submitBtn');
+        const toggleForm = document.getElementById('toggleForm');
+
+        // التبديل بين تسجيل الدخول وإنشاء حساب
+        toggleForm.addEventListener('click', () => {
+            isLoginMode = !isLoginMode;
+            if (isLoginMode) {
+                formTitle.textContent = 'تسجيل الدخول';
+                submitBtn.textContent = 'دخول';
+                toggleForm.textContent = 'ليس لديك حساب؟ سجل الآن';
+            } else {
+                formTitle.textContent = 'إنشاء حساب جديد';
+                submitBtn.textContent = 'تسجيل';
+                toggleForm.textContent = 'لديك حساب بالفعل؟ سجل دخولك';
+            }
+        });
+
+        // تنفيذ تسجيل الدخول أو إنشاء الحساب
+        submitBtn.addEventListener('click', async () => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                alert('الرجاء إدخال البريد الإلكتروني وكلمة المرور.');
+                return;
+            }
+
+            try {
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                window.location.href = 'index.html';
+            } catch (error) {
+                console.error("خطأ:", error);
+                alert("فشل العملية: " + error.message);
+            }
+        });
+
+        // التحقق من حالة المستخدم
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                window.location.href = 'index.html';
+            }
         });
     </script>
 </body>
