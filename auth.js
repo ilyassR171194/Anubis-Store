@@ -7,8 +7,7 @@ const githubProvider = new GithubAuthProvider();
 
 export const loginWithGoogle = async () => {
     try {
-        const result = await signInWithPopup(auth, googleProvider);
-        console.log("تم تسجيل الدخول بنجاح:", result.user);
+        await signInWithPopup(auth, googleProvider);
         window.location.href = 'index.html';
     } catch (error) {
         console.error("خطأ في تسجيل الدخول بـ Google:", error);
@@ -18,8 +17,7 @@ export const loginWithGoogle = async () => {
 
 export const loginWithGithub = async () => {
     try {
-        const result = await signInWithPopup(auth, githubProvider);
-        console.log("تم تسجيل الدخول بنجاح:", result.user);
+        await signInWithPopup(auth, githubProvider);
         window.location.href = 'index.html';
     } catch (error) {
         console.error("خطأ في تسجيل الدخول بـ GitHub:", error);
@@ -30,25 +28,34 @@ export const loginWithGithub = async () => {
 export const logout = async () => {
     try {
         await signOut(auth);
-        window.location.href = 'index.html';
+        window.location.href = 'login.html';
     } catch (error) {
         console.error("خطأ في تسجيل الخروج:", error);
     }
 };
 
+// مراقبة حالة المستخدم
 onAuthStateChanged(auth, (user) => {
-    const loginBtn = document.getElementById('loginBtn');
+    const currentPage = window.location.pathname.split('/').pop(); // معرفة الصفحة الحالية
+    
     if (user) {
+        // المستخدم مسجل دخول
+        const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
             loginBtn.textContent = 'تسجيل الخروج';
             loginBtn.href = '#';
             loginBtn.onclick = (e) => { e.preventDefault(); logout(); };
         }
+        
+        // إذا كان في صفحة تسجيل الدخول، انتقل للرئيسية
+        if (currentPage === 'login.html' || currentPage === '') {
+            window.location.href = 'index.html';
+        }
+        
     } else {
-        if (loginBtn) {
-            loginBtn.textContent = 'تسجيل الدخول';
-            loginBtn.href = 'login.html';
-            loginBtn.onclick = null;
+        // المستخدم غير مسجل دخول -> أجبره على تسجيل الدخول
+        if (currentPage !== 'login.html') {
+            window.location.href = 'login.html';
         }
     }
 });
