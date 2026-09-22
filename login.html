@@ -4,39 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول | متجر أنوبيس</title>
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="style.css">
     <style>
-        .login-container {
-            max-width: 400px;
-            margin: 4rem auto;
-            padding: 2rem;
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            text-align: center;
-        }
-        .login-container h2 {
-            margin-bottom: 2rem;
-            color: var(--accent-color);
-        }
-        .login-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            width: 100%;
-            padding: 12px;
-            margin-bottom: 1rem;
-            border-radius: 8px;
-            font-weight: 700;
-            cursor: pointer;
-            border: none;
-            font-family: 'Cairo', sans-serif;
-            transition: opacity 0.3s;
-        }
+        .login-container { max-width: 400px; margin: 4rem auto; padding: 2rem; background-color: #1a1a1a; border-radius: 12px; border: 1px solid #333; text-align: center; }
+        .login-container h2 { margin-bottom: 2rem; color: #f39c12; }
+        .login-btn { display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; font-weight: 700; cursor: pointer; border: none; font-family: 'Cairo', sans-serif; transition: opacity 0.3s; }
         .google-btn { background-color: #fff; color: #333; }
         .github-btn { background-color: #333; color: #fff; }
-        .phone-btn { background-color: var(--accent-color); color: #000; }
+        .phone-btn { background-color: #f39c12; color: #000; }
         .login-btn:hover { opacity: 0.9; }
     </style>
 </head>
@@ -61,9 +36,8 @@
         document.getElementById('googleLoginBtn').addEventListener('click', loginWithGoogle);
         document.getElementById('githubLoginBtn').addEventListener('click', loginWithGithub);
         
-        // Phone login سيتم تفعيله لاحقاً (يتطلب إعداداً إضافياً في Firebase)
         document.getElementById('phoneLoginBtn').addEventListener('click', () => {
-            alert('تسجيل الدخول برقم الهاتف قيد التطوير. يرجى استخدام Google أو GitHub حالياً.');
+            alert('تسجيل الدخول برقم الهاتف قيد التطوير.');
         });
     </script>
 </body>
