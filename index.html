@@ -4,42 +4,379 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anubis Store | متجر أنوبيس</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐺</text></svg>">
+    <script type="module">
+        // ==================== إعداد Firebase ====================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCRCbLiOdZ912O5HpSuRmPb04Qoxy0P7NE",
+            authDomain: "anubis-store.firebaseapp.com",
+            projectId: "anubis-store",
+            storageBucket: "anubis-store.firebasestorage.app",
+            messagingSenderId: "263659571541",
+            appId: "1:263659571541:web:85ebe6074c6cdc119207dc"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ==================== إدارة السلة ====================
+        const getCartRef = () => {
+            const user = auth.currentUser;
+            if (!user) return null;
+            return doc(db, "carts", user.uid);
+        };
+
+        window.addToCart = async (productId, productName, productPrice, productImage) => {
+            const user = auth.currentUser;
+            if (!user) {
+                alert("يجب تسجيل الدخول أولاً.");
+                window.location.href = '#login-section';
+                return;
+            }
+            const cartRef = getCartRef();
+            const cartSnap = await getDoc(cartRef);
+            let cart = cartSnap.exists() ? cartSnap.data().items || [] : [];
+            const existingItem = cart.find(item => item.id === productId);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ id: productId, name: productName, price: productPrice, image: productImage, quantity: 1 });
+            }
+            await setDoc(cartRef, { items: cart });
+            alert('تمت إضافة المنتج إلى السلة!');
+            updateCartCount();
+        };
+
+        window.updateCartCount = async () => {
+            const cartCount = document.getElementById('cartCount');
+            if (!cartCount) return;
+            const user = auth.currentUser;
+            if (!user) { cartCount.textContent = 0; return; }
+            const cartRef = getCartRef();
+            const cartSnap = await getDoc(cartRef);
+            if (cartSnap.exists()) {
+                const cart = cartSnap.data().items || [];
+                const totalItems = cart.reduce((total, item) => total + item.quantity, 0);
+                cartCount.textContent = totalItems;
+            } else {
+                cartCount.textContent = 0;
+            }
+        };
+
+        window.removeFromCart = async (productId) => {
+            const user = auth.currentUser;
+            if (!user) return;
+            const cartRef = getCartRef();
+            const cartSnap = await getDoc(cartRef);
+            if (!cartSnap.exists()) return;
+            let cart = cartSnap.data().items || [];
+            cart = cart.filter(item => item.id !== productId);
+            await setDoc(cartRef, { items: cart });
+            updateCartCount();
+            renderCart();
+        };
+
+        window.clearCart = async () => {
+            const user = auth.currentUser;
+            if (!user) return;
+            const cartRef = getCartRef();
+            await setDoc(cartRef, { items: [] });
+            updateCartCount();
+        };
+
+        // ==================== عرض المنتجات ====================
+        async function loadProducts() {
+            const productsContainer = document.getElementById('productsContainer');
+            if (!productsContainer) return;
+            try {
+                const querySnapshot = await getDocs(collection(db, "products"));
+                productsContainer.innerHTML = '';
+                if (querySnapshot.empty) {
+                    productsContainer.innerHTML = '<p>لا توجد منتجات حالياً.</p>';
+                    return;
+                }
+                querySnapshot.forEach((doc) => {
+                    const product = doc.data();
+                    const productHTML = `
+                        <div class="product-card">
+                            <img src="${product.image || 'https://via.placeholder.com/150'}" alt="${product.name}">
+                            <h4>${product.name}</h4>
+                            <p>${product.price} $</p>
+                            <button onclick="window.addToCart('${doc.id}', '${product.name}', ${product.price}, '${product.image}')">أضف إلى السلة</button>
+                        </div>
+                    `;
+                    productsContainer.innerHTML += productHTML;
+                });
+            } catch (error) {
+                console.error("خطأ في جلب المنتجات:", error);
+                productsContainer.innerHTML = '<p>حدث خطأ في تحميل المنتجات.</p>';
+            }
+        }
+
+        // ==================== عرض السلة ====================
+        window.renderCart = async () => {
+            const cartContainer = document.getElementById('cartContainer');
+            const cartTotal = document.getElementById('cartTotal');
+            if (!cartContainer) return;
+            const user = auth.currentUser;
+            if (!user) { cartContainer.innerHTML = '<p>يجب تسجيل الدخول.</p>'; return; }
+            const cartRef = getCartRef();
+            const cartSnap = await getDoc(cartRef);
+            const cart = cartSnap.exists() ? cartSnap.data().items || [] : [];
+            cartContainer.innerHTML = '';
+            if (cart.length === 0) {
+                cartContainer.innerHTML = '<p style="text-align: center; width: 100%;">السلة فارغة.</p>';
+                cartTotal.textContent = '';
+                return;
+            }
+            let total = 0;
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                cartContainer.innerHTML += `
+                    <div class="product-card">
+                        <img src="${item.image}" alt="${item.name}">
+                        <h4>${item.name}</h4>
+                        <p>${item.price} $ × ${item.quantity}</p>
+                        <button onclick="window.removeFromCart('${item.id}')" style="background-color: #e74c3c;">إزالة</button>
+                    </div>
+                `;
+            });
+            cartTotal.textContent = `الإجمالي: ${total} $`;
+        };
+
+        // ==================== عرض صفحة الدفع ====================
+        window.renderCheckout = async () => {
+            const orderSummary = document.getElementById('orderSummary');
+            const orderTotal = document.getElementById('orderTotal');
+            if (!orderSummary) return;
+            const user = auth.currentUser;
+            if (!user) { orderSummary.innerHTML = '<p>يجب تسجيل الدخول.</p>'; return; }
+            const cartRef = getCartRef();
+            const cartSnap = await getDoc(cartRef);
+            const cart = cartSnap.exists() ? cartSnap.data().items || [] : [];
+            orderSummary.innerHTML = '';
+            if (cart.length === 0) {
+                orderSummary.innerHTML = '<p>السلة فارغة.</p>';
+                document.getElementById('confirmOrderBtn').disabled = true;
+                return;
+            }
+            let total = 0;
+            cart.forEach(item => {
+                total += item.price * item.quantity;
+                orderSummary.innerHTML += `
+                    <div style="display:flex; justify-content:space-between; padding:0.5rem 0; border-bottom:1px solid #333;">
+                        <span>${item.name} × ${item.quantity}</span>
+                        <span>${item.price * item.quantity} $</span>
+                    </div>
+                `;
+            });
+            orderTotal.textContent = `الإجمالي: ${total} $`;
+        };
+
+        // ==================== التنقل بين الصفحات ====================
+        window.showPage = (pageId) => {
+            document.querySelectorAll('.page-section').forEach(sec => sec.style.display = 'none');
+            document.getElementById(pageId).style.display = 'block';
+            if (pageId === 'cart-section') renderCart();
+            if (pageId === 'checkout-section') renderCheckout();
+            if (pageId === 'home-section') loadProducts();
+        };
+
+        // ==================== مصادقة المستخدم ====================
+        window.handleAuth = async (isLogin) => {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            if (!email || !password) { alert('الرجاء إدخال البريد وكلمة المرور.'); return; }
+            try {
+                if (isLogin) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                }
+                window.location.href = '#home-section';
+                showPage('home-section');
+            } catch (error) {
+                alert("فشل العملية: " + error.message);
+            }
+        };
+
+        window.toggleAuthMode = () => {
+            const title = document.getElementById('authTitle');
+            const btn = document.getElementById('authBtn');
+            const toggle = document.getElementById('authToggle');
+            if (title.textContent === 'تسجيل الدخول') {
+                title.textContent = 'إنشاء حساب جديد';
+                btn.textContent = 'تسجيل';
+                toggle.textContent = 'لديك حساب؟ سجل دخولك';
+                btn.onclick = () => handleAuth(false);
+            } else {
+                title.textContent = 'تسجيل الدخول';
+                btn.textContent = 'دخول';
+                toggle.textContent = 'ليس لديك حساب؟ سجل الآن';
+                btn.onclick = () => handleAuth(true);
+            }
+        };
+
+        window.logout = async () => {
+            await signOut(auth);
+            window.location.href = '#home-section';
+            showPage('home-section');
+        };
+
+        // ==================== مراقبة حالة المستخدم ====================
+        onAuthStateChanged(auth, (user) => {
+            const loginBtn = document.getElementById('loginBtn');
+            const navCart = document.getElementById('navCart');
+            const navLogin = document.getElementById('navLogin');
+            if (user) {
+                if (loginBtn) { loginBtn.textContent = 'تسجيل الخروج'; loginBtn.onclick = logout; }
+                if (navCart) navCart.style.display = 'inline-block';
+                if (navLogin) navLogin.style.display = 'none';
+                updateCartCount();
+                loadProducts();
+                if (document.getElementById('cart-section').style.display === 'block') renderCart();
+                if (document.getElementById('checkout-section').style.display === 'block') renderCheckout();
+            } else {
+                if (loginBtn) { loginBtn.textContent = 'تسجيل الدخول'; loginBtn.onclick = () => showPage('login-section'); }
+                if (navCart) navCart.style.display = 'none';
+                if (navLogin) navLogin.style.display = 'inline-block';
+                document.getElementById('cartCount').textContent = 0;
+            }
+        });
+
+        // ==================== بدء التطبيق ====================
+        window.onload = () => {
+            showPage('home-section');
+            loadProducts();
+        };
+    </script>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap">
+    <style>
+        :root {
+            --bg-color: #0f0f0f;
+            --card-bg: #1a1a1a;
+            --text-color: #ffffff;
+            --text-secondary: #b3b3b3;
+            --accent-color: #f39c12;
+            --accent-hover: #e67e22;
+            --border-color: #333333;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background-color: var(--bg-color); color: var(--text-color); line-height: 1.6; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem; background-color: rgba(26, 26, 26, 0.95); border-bottom: 2px solid var(--accent-color); position: sticky; top: 0; z-index: 1000; }
+        .logo h1 { font-size: 1.5rem; color: var(--accent-color); font-weight: 700; }
+        nav { display: flex; gap: 20px; }
+        nav a { color: var(--text-color); text-decoration: none; font-weight: 600; transition: color 0.3s; cursor: pointer; }
+        nav a:hover { color: var(--accent-color); }
+        .hero { text-align: center; padding: 5rem 1rem; background: linear-gradient(135deg, #1a1a1a 0%, #0f0f0f 100%); }
+        .hero h2 { font-size: 2.5rem; margin-bottom: 1rem; color: var(--accent-color); }
+        .hero p { font-size: 1.2rem; color: var(--text-secondary); }
+        .categories, .products { padding: 3rem 2rem; text-align: center; }
+        .categories h3, .products h3 { font-size: 2rem; margin-bottom: 2rem; }
+        .category-grid, .product-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 1.5rem; max-width: 1200px; margin: 0 auto; }
+        .cat-card, .product-card { background-color: var(--card-bg); padding: 1.5rem; border-radius: 12px; border: 1px solid var(--border-color); transition: transform 0.3s, border-color 0.3s; cursor: pointer; font-weight: 600; }
+        .cat-card:hover, .product-card:hover { transform: translateY(-5px); border-color: var(--accent-color); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.1); }
+        .product-card img { width: 100%; height: 150px; object-fit: cover; border-radius: 8px; margin-bottom: 1rem; }
+        .product-card h4 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+        .product-card p { color: var(--accent-color); font-weight: 700; font-size: 1.2rem; margin-bottom: 1rem; }
+        button { background-color: var(--accent-color); color: #000; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: background-color 0.3s, transform 0.2s; font-family: 'Cairo', sans-serif; width: 100%; }
+        button:hover { background-color: var(--accent-hover); transform: scale(1.02); }
+        footer { text-align: center; padding: 2rem; background-color: var(--card-bg); border-top: 1px solid var(--border-color); color: var(--text-secondary); margin-top: 4rem; }
+        .login-container { max-width: 400px; margin: 4rem auto; padding: 2rem; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); text-align: center; }
+        .login-container h2 { margin-bottom: 2rem; color: var(--accent-color); }
+        .login-input { width: 100%; padding: 12px; margin-bottom: 1rem; border-radius: 8px; border: 1px solid #444; background-color: #222; color: #fff; font-family: 'Cairo', sans-serif; }
+        .toggle-link { color: var(--accent-color); cursor: pointer; text-decoration: underline; margin-top: 1rem; display: block; }
+        .checkout-container { max-width: 600px; margin: 3rem auto; padding: 2rem; background-color: var(--card-bg); border-radius: 12px; border: 1px solid var(--border-color); }
+        .paypal-info { background-color: #003087; color: #fff; padding: 1rem; border-radius: 8px; margin: 1rem 0; text-align: center; }
+        .page-section { display: none; }
+    </style>
 </head>
 <body>
     <header>
         <div class="logo"><h1>🐺 متجر أنوبيس</h1></div>
         <nav>
-            <a href="index.html">الرئيسية</a>
-            <a href="cart.html">السلة 🛒 <span id="cartCount">0</span></a>
-            <a href="login.html" id="loginBtn">تسجيل الدخول</a>
+            <a onclick="showPage('home-section')">الرئيسية</a>
+            <a id="navCart" style="display:none;" onclick="showPage('cart-section')">السلة 🛒 <span id="cartCount">0</span></a>
+            <a id="navLogin" onclick="showPage('login-section')">تسجيل الدخول</a>
+            <a id="loginBtn" style="display:none;" onclick="logout()">تسجيل الخروج</a>
         </nav>
     </header>
 
     <main>
-        <section class="hero">
-            <h2>مرحباً بكم في متجر أنوبيس</h2>
-            <p>وجهتك الأولى للبطاقات الرقمية، شحن الألعاب، والعملات الرقمية بأفضل الأسعار وأسرع تسليم.</p>
-        </section>
-
-        <section class="categories">
-            <h3>تصفح الأقسام</h3>
-            <div class="category-grid">
-                <div class="cat-card" onclick="window.location.href='index.html'">💳 بطاقات فيزا (VCC)</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">🎮 شحن ألعاب</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">💰 PayPal</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">🔥 حسابات Free Fire</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">🤖 Prompts ذكاء اصطناعي</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">🛡️ أدوات اختراق أخلاقي</div>
-                <div class="cat-card" onclick="window.location.href='index.html'">₿ عملات رقمية</div>
+        <!-- الصفحة الرئيسية -->
+        <section id="home-section" class="page-section">
+            <div class="hero">
+                <h2>مرحباً بكم في متجر أنوبيس</h2>
+                <p>وجهتك الأولى للبطاقات الرقمية، شحن الألعاب، والعملات الرقمية بأفضل الأسعار وأسرع تسليم.</p>
+            </div>
+            <div class="categories">
+                <h3>تصفح الأقسام</h3>
+                <div class="category-grid">
+                    <div class="cat-card" onclick="alert('قسم VCC قريباً!')">💳 بطاقات فيزا (VCC)</div>
+                    <div class="cat-card" onclick="alert('قسم شحن الألعاب قريباً!')">🎮 شحن ألعاب</div>
+                    <div class="cat-card" onclick="alert('قسم PayPal قريباً!')">💰 PayPal</div>
+                    <div class="cat-card" onclick="alert('قسم حسابات Free Fire قريباً!')">🔥 حسابات Free Fire</div>
+                    <div class="cat-card" onclick="alert('قسم Prompts قريباً!')">🤖 Prompts ذكاء اصطناعي</div>
+                    <div class="cat-card" onclick="alert('قسم أدوات الاختراق قريباً!')">🛡️ أدوات اختراق أخلاقي</div>
+                    <div class="cat-card" onclick="alert('قسم العملات الرقمية قريباً!')">₿ عملات رقمية</div>
+                </div>
+            </div>
+            <div class="products">
+                <h3>المنتجات المميزة</h3>
+                <div id="productsContainer" class="product-grid"><p>جاري تحميل المنتجات...</p></div>
             </div>
         </section>
 
-        <section class="products">
-            <h3>المنتجات المميزة</h3>
-            <div id="productsContainer" class="product-grid">
-                <p>جاري تحميل المنتجات...</p>
+        <!-- صفحة تسجيل الدخول -->
+        <section id="login-section" class="page-section">
+            <div class="login-container">
+                <h2 id="authTitle">تسجيل الدخول</h2>
+                <input type="email" id="email" class="login-input" placeholder="البريد الإلكتروني">
+                <input type="password" id="password" class="login-input" placeholder="كلمة المرور">
+                <button id="authBtn" onclick="handleAuth(true)">دخول</button>
+                <span id="authToggle" class="toggle-link" onclick="toggleAuthMode()">ليس لديك حساب؟ سجل الآن</span>
+            </div>
+        </section>
+
+        <!-- صفحة السلة -->
+        <section id="cart-section" class="page-section">
+            <div class="products">
+                <h3>سلة التسوق</h3>
+                <div id="cartContainer" class="product-grid"></div>
+                <div id="cartTotal" style="text-align: center; margin-top: 2rem; font-size: 1.5rem; color: #f39c12; font-weight: 700;"></div>
+                <div style="text-align: center; margin-top: 1rem;">
+                    <button onclick="showPage('checkout-section')" style="max-width: 300px; margin: 0 auto;">إتمام الطلب</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- صفحة الدفع -->
+        <section id="checkout-section" class="page-section">
+            <div class="checkout-container">
+                <h2>إتمام الطلب</h2>
+                <h3>ملخص الطلب:</h3>
+                <div id="orderSummary"></div>
+                <div id="orderTotal" style="text-align: left; font-size: 1.3rem; font-weight: 700; color: #f39c12; margin-top: 1rem;"></div>
+                <hr style="border-color: #333; margin: 2rem 0;">
+                <h3>بيانات الدفع:</h3>
+                <div style="margin-bottom: 1.5rem;">
+                    <label>البريد الإلكتروني:</label>
+                    <input type="email" id="checkoutEmail" class="login-input" placeholder="example@email.com">
+                </div>
+                <div class="paypal-info">
+                    <p><strong>الدفع عبر PayPal:</strong></p>
+                    <p>يرجى إرسال المبلغ إلى: <strong>anubis-store@example.com</strong></p>
+                    <p>ثم أدخل رقم عملية الدفع في الأسفل.</p>
+                </div>
+                <div style="margin-bottom: 1.5rem;">
+                    <label>رقم عملية الدفع:</label>
+                    <input type="text" id="transactionId" class="login-input" placeholder="Transaction ID">
+                </div>
+                <button id="confirmOrderBtn" style="width: 100%; padding: 15px; font-size: 1.2rem;" onclick="confirmOrder()">تأكيد الطلب</button>
             </div>
         </section>
     </main>
@@ -48,9 +385,15 @@
         <p>&copy; 2026 Anubis Store. جميع الحقوق محفوظة.</p>
     </footer>
 
-    <script type="module" src="firebase.js"></script>
-    <script type="module" src="products.js"></script>
-    <script type="module" src="auth.js"></script>
-    <script type="module" src="cart.js"></script>
+    <script>
+        window.confirmOrder = async () => {
+            const email = document.getElementById('checkoutEmail').value;
+            const transactionId = document.getElementById('transactionId').value;
+            if (!email || !transactionId) { alert('الرجاء إدخال البريد ورقم العملية.'); return; }
+            alert('تم استلام طلبك بنجاح! سنراجعه ونرسل المنتج إلى بريدك قريباً.');
+            await clearCart();
+            showPage('home-section');
+        };
+    </script>
 </body>
 </html>
